@@ -1,0 +1,162 @@
+import React, { useState } from 'react';
+
+// Main App component
+function App() {
+  // Estado para manejar si el usuario está autenticado
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Estado para manejar el rol del usuario autenticado (operario, supervisor, administrador)
+  const [userRole, setUserRole] = useState(null);
+
+  // Componente del formulario de Login
+  const LoginForm = ({ onLoginSuccess }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // Función que simula la autenticación
+    const handleLogin = (e) => {
+      e.preventDefault();
+      setErrorMessage(''); // Limpiar mensajes de error previos
+
+      // Lógica de autenticación simulada. En un proyecto real, esto haría una llamada al backend.
+      // Basado en el plan, el rol determina el acceso.
+      if (email === 'operario@logisticentro.com' && password === 'password123') {
+        onLoginSuccess('operario');
+      } else if (email === 'supervisor@logisticentro.com' && password === 'password123') {
+        onLoginSuccess('supervisor');
+      } else if (email === 'admin@logisticentro.com' && password === 'password123') {
+        onLoginSuccess('administrador');
+      } else {
+        setErrorMessage('Correo o contraseña incorrectos. Intenta con los usuarios de prueba.');
+      }
+    };
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8">
+        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-sm border border-gray-200">
+          <h2 className="text-3xl font-bold text-center text-indigo-700 mb-6">Iniciar Sesión</h2>
+          <p className="text-center text-sm text-gray-600 mb-6">
+            Ingresa tus credenciales para acceder al sistema de LogiCentro SAC.
+          </p>
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <label htmlFor="email" className="block text-gray-700 text-sm font-semibold mb-2">
+                Correo Electrónico:
+              </label>
+              <input
+                type="email"
+                id="email"
+                className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+                placeholder="ejemplo@logisticentro.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-6">
+              <label htmlFor="password" className="block text-gray-700 text-sm font-semibold mb-2">
+                Contraseña:
+              </label>
+              <input
+                type="password"
+                id="password"
+                className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+                placeholder="************"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {errorMessage && (
+                <p className="text-red-500 text-xs italic mt-2 text-center">{errorMessage}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105"
+            >
+              Iniciar Sesión
+            </button>
+          </form>
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p className="mb-2">Usuarios de prueba:</p>
+            <p>Operario: <span className="font-semibold text-indigo-600">operario@logisticentro.com</span></p>
+            <p>Supervisor: <span className="font-semibold text-indigo-600">supervisor@logisticentro.com</span></p>
+            <p>Administrador: <span className="font-semibold text-indigo-600">admin@logisticentro.com</span></p>
+            <p>Contraseña para todos: <span className="font-semibold text-indigo-600">password123</span></p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente que se muestra después de la autenticación exitosa
+  const Dashboard = ({ role }) => {
+    // Función para cerrar sesión
+    const handleLogout = () => {
+      setIsAuthenticated(false);
+      setUserRole(null);
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center">
+          <h1 className="text-4xl font-extrabold text-gray-800 mb-4 animate-fade-in-down">
+            ¡Bienvenido, {role.charAt(0).toUpperCase() + role.slice(1)}!
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            Has iniciado sesión exitosamente en el sistema de LogiCentro SAC.
+          </p>
+          <p className="text-md text-gray-700 mb-8">
+            Aquí es donde se mostraría el **Dashboard** o la **interfaz principal** según tu rol.
+            En las próximas fases, implementaremos las funcionalidades específicas para cada perfil.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition duration-300 transform hover:scale-105"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+        {/* Agregando animaciones básicas para el dashboard */}
+        <style>{`
+          @keyframes fadeInDown {
+            from {
+              opacity: 0;
+              transform: translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in-down {
+            animation: fadeInDown 0.8s ease-out forwards;
+          }
+        `}</style>
+      </div>
+    );
+  };
+
+  return (
+    <div className="App">
+      {/* Carga de Tailwind CSS CDN */}
+      <script src="https://cdn.tailwindcss.com"></script>
+      {/* Fuente Inter desde Google Fonts */}
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <style>{`
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+      `}</style>
+
+      {/* Renderizado condicional: si no está autenticado, muestra el Login, si sí, el Dashboard */}
+      {!isAuthenticated ? (
+        <LoginForm onLoginSuccess={(role) => { setIsAuthenticated(true); setUserRole(role); }} />
+      ) : (
+        <Dashboard role={userRole} />
+      )}
+    </div>
+  );
+}
+
+export default App;
