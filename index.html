@@ -30,12 +30,73 @@
         .animate-fade-in-down {
             animation: fadeInDown 0.8s ease-out forwards;
         }
+
+        /* Estilos para el sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: #1a202c; /* dark gray */
+            color: #ffffff;
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(0);
+            flex-shrink: 0;
+        }
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+        .content-area {
+            flex-grow: 1;
+            overflow-y: auto; /* Enable scrolling for content */
+        }
+        /* Mobile sidebar toggle */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                height: 100%;
+                z-index: 1000;
+            }
+            .sidebar.hidden {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Custom Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 flex h-screen">
 
-    <div id="app-container">
+    <div id="app-container" class="flex flex-1">
         <!-- El contenido de la aplicación se renderizará aquí -->
+    </div>
+
+    <!-- Custom Modal Structure -->
+    <div id="customModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-lg font-semibold text-gray-800 mb-4"></p>
+            <button id="modalCloseButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300">
+                Aceptar
+            </button>
+        </div>
     </div>
 
     <script>
@@ -43,13 +104,63 @@
         let isAuthenticated = false;
         let userRole = null;
 
+        // Dummy data for demonstration
+        const dummyData = {
+            providers: [
+                { id: '1', name: 'Proveedor A S.A.C.', ruc: '20123456789', phone: '987654321', email: 'contacto@proveedora.com' },
+                { id: '2', name: 'Distribuciones B E.I.R.L.', ruc: '20987654321', phone: '912345678', email: 'info@distribucionesb.com' },
+                { id: '3', name: 'Suministros C Corp.', ruc: '20555444333', phone: '999888777', email: 'ventas@suministrosc.net' },
+            ],
+            products: [
+                { id: '101', name: 'Medicamento X', code: 'MED-001', unit: 'Caja' },
+                { id: '102', name: 'Suministro Y', code: 'SUM-002', unit: 'Unidad' },
+                { id: '103', name: 'Vacuna Z', code: 'VAC-003', unit: 'Ml' },
+                { id: '104', name: 'Jeringa 5ml', code: 'JER-004', unit: 'Paquete' },
+            ],
+            rejectionReasons: [
+                { id: 'r1', description: 'Daño físico en el empaque' },
+                { id: 'r2', description: 'Discrepancia de cantidad' },
+                { id: 'r3', description: 'Caducidad próxima (menos de 6 meses)' },
+                { id: 'r4', description: 'Producto incorrecto' },
+                { id: 'r5', description: 'Falta de documentación' },
+            ],
+            pendingReceptions: [
+                { id: '001', date: '2025-06-15', provider: 'Proveedor A', product: 'Medicamento X', status: 'Pendiente' },
+                { id: '002', date: '2025-06-14', provider: 'Distribuciones B', product: 'Suministro Y', status: 'Pendiente' },
+            ],
+            users: [
+                { id: 'u1', name: 'Carlos García', email: 'operario@logisticentro.com', role: 'operario' },
+                { id: 'u2', name: 'Ana López', email: 'supervisor@logisticentro.com', role: 'supervisor' },
+                { id: 'u3', name: 'María Fernández', email: 'admin@logisticentro.com', role: 'administrador' },
+                { id: 'u4', name: 'Juan Pérez', email: 'juan.perez@logisticentro.com', role: 'operario' },
+            ]
+        };
+
+        // --- Custom Modal Functions ---
+        /**
+         * Muestra un modal personalizado con un mensaje.
+         * @param {string} message - El mensaje a mostrar en el modal.
+         */
+        function showCustomModal(message) {
+            const modal = document.getElementById('customModal');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalCloseButton = document.getElementById('modalCloseButton');
+
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+
+            modalCloseButton.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
         /**
          * Renderiza el formulario de inicio de sesión.
          */
         function renderLoginForm() {
             const appContainer = document.getElementById('app-container');
             appContainer.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8">
+                <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8 flex-1">
                     <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-sm border border-gray-200">
                         <h2 class="text-3xl font-bold text-center text-indigo-700 mb-6">Iniciar Sesión</h2>
                         <p class="text-center text-sm text-gray-600 mb-6">
@@ -143,39 +254,6 @@
         }
 
         /**
-         * Renderiza el dashboard del usuario.
-         * @param {string} role - El rol del usuario.
-         */
-        function renderDashboard(role) {
-            const appContainer = document.getElementById('app-container');
-            const capitalizedRole = role.charAt(0).toUpperCase() + role.slice(1);
-            appContainer.innerHTML = `
-                <div class="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
-                    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center">
-                        <h1 class="text-4xl font-extrabold text-gray-800 mb-4 animate-fade-in-down">
-                            ¡Bienvenido, ${capitalizedRole}!
-                        </h1>
-                        <p class="text-lg text-gray-600 mb-6">
-                            Has iniciado sesión exitosamente en el sistema de LogiCentro SAC.
-                        </p>
-                        <p class="text-md text-gray-700 mb-8">
-                            Aquí es donde se mostraría el <strong>Dashboard</strong> o la <strong>interfaz principal</strong> según tu rol.
-                            En las próximas fases, implementaremos las funcionalidades específicas para cada perfil.
-                        </p>
-                        <button
-                            id="logoutButton"
-                            class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition duration-300 transform hover:scale-105"
-                        >
-                            Cerrar Sesión
-                        </button>
-                    </div>
-                </div>
-            `;
-            // Añadir el evento click al botón de cerrar sesión
-            document.getElementById('logoutButton').addEventListener('click', handleLogout);
-        }
-
-        /**
          * Maneja la lógica de cerrar sesión.
          */
         function handleLogout() {
@@ -185,13 +263,947 @@
         }
 
         /**
+         * Renderiza el sidebar de navegación.
+         * @param {string} role - El rol del usuario.
+         * @returns {string} El HTML del sidebar.
+         */
+        function renderSidebar(role) {
+            let navItems = '';
+            if (role === 'operario') {
+                navItems = `
+                    <a href="#" onclick="renderReceptionForm(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        Registro de Recepción
+                    </a>
+                `;
+            } else if (role === 'supervisor') {
+                navItems = `
+                    <a href="#" onclick="renderDashboard(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 112 2h0a2 2 0 01-2-2zm0 0l4 4m-4-4v4"></path></svg>
+                        Dashboard
+                    </a>
+                    <a href="#" onclick="renderPendingReceptionsList(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m7 0v8m-4-8h8"></path></svg>
+                        Recepciones Pendientes
+                    </a>
+                `;
+            } else if (role === 'administrador') {
+                navItems = `
+                    <a href="#" onclick="renderDashboard(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 112 2h0a2 2 0 01-2-2zm0 0l4 4m-4-4v4"></path></svg>
+                        Dashboard
+                    </a>
+                    <a href="#" onclick="renderReceptionForm(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        Registro de Recepción
+                    </a>
+                    <a href="#" onclick="renderPendingReceptionsList(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m7 0v8m-4-8h8"></path></svg>
+                        Recepciones Pendientes
+                    </a>
+                    <a href="#" onclick="renderAdminPanel(); return false;" class="flex items-center p-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md">
+                        <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Administración
+                    </a>
+                `;
+            }
+
+            return `
+                <div class="sidebar bg-gray-900 text-white flex flex-col p-4 space-y-4 shadow-lg h-full">
+                    <div class="text-2xl font-bold text-indigo-400 mb-6 text-center">LogiCentro SAC</div>
+                    <nav class="flex flex-col flex-grow">
+                        ${navItems}
+                    </nav>
+                    <button id="logoutButtonSidebar" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            `;
+        }
+
+        /**
+         * Renderiza el contenido principal de la aplicación.
+         */
+        function renderAppContent() {
+            const appContainer = document.getElementById('app-container');
+            const capitalizedRole = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+            
+            appContainer.innerHTML = `
+                ${renderSidebar(userRole)}
+                <div class="flex flex-col flex-1">
+                    <header class="bg-white shadow p-4 flex items-center justify-between">
+                        <button id="sidebarToggle" class="text-gray-600 focus:outline-none focus:text-gray-900 md:hidden">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <h1 class="text-2xl font-semibold text-gray-800 ml-4">Bienvenido, ${capitalizedRole}!</h1>
+                        <div class="flex items-center">
+                            <span class="text-gray-600 text-sm mr-2">${userRole.toUpperCase()}</span>
+                            <button id="logoutButtonHeader" class="bg-red-500 hover:bg-red-600 text-white text-sm py-2 px-4 rounded-lg">
+                                Salir
+                            </button>
+                        </div>
+                    </header>
+                    <main id="main-content" class="flex-1 p-6 bg-gray-100 overflow-y-auto">
+                        <!-- El contenido específico del rol se cargará aquí -->
+                    </main>
+                </div>
+            `;
+
+            document.getElementById('logoutButtonSidebar').addEventListener('click', handleLogout);
+            document.getElementById('logoutButtonHeader').addEventListener('click', handleLogout);
+            
+            const sidebar = appContainer.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+            });
+
+            // Render initial view based on role
+            if (userRole === 'operario') {
+                renderReceptionForm();
+            } else if (userRole === 'supervisor' || userRole === 'administrador') {
+                renderDashboard();
+            }
+        }
+
+        /**
+         * Renderiza el dashboard.
+         */
+        function renderDashboard() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 mb-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Dashboard de Actividad</h2>
+                    <p class="text-gray-600 mb-4">Aquí verás los indicadores clave de rendimiento (KPIs) del inventario.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-blue-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-blue-800 mb-2">Porcentaje de Conformidad</h3>
+                            <p class="text-gray-700">Gráfico de barras/líneas mostrando el % de productos conformes vs no conformes.</p>
+                            <div class="mt-4 bg-blue-200 h-32 flex items-center justify-center rounded-md text-blue-600 font-bold">
+                                [Gráfico de % de Conformidad]
+                            </div>
+                        </div>
+                        <div class="bg-green-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-green-800 mb-2">Top 5 Proveedores</h3>
+                            <p class="text-gray-700">Gráfico mostrando los 5 proveedores con mayor volumen de recepción.</p>
+                            <div class="mt-4 bg-green-200 h-32 flex items-center justify-center rounded-md text-green-600 font-bold">
+                                [Gráfico de Top 5 Proveedores]
+                            </div>
+                        </div>
+                        <div class="bg-yellow-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-yellow-800 mb-2">Tiempos Promedio de Recepción</h3>
+                            <p class="text-gray-700">Gráfico mostrando el tiempo promedio desde la llegada hasta el registro.</p>
+                            <div class="mt-4 bg-yellow-200 h-32 flex items-center justify-center rounded-md text-yellow-600 font-bold">
+                                [Gráfico de Tiempos Promedio]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renderiza el formulario de recepción de productos.
+         */
+        function renderReceptionForm() {
+            const mainContent = document.getElementById('main-content');
+            const providersOptions = dummyData.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const productsOptions = dummyData.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const rejectionReasonsOptions = dummyData.rejectionReasons.map(r => `<option value="${r.id}">${r.description}</option>`).join('');
+
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Registro de Recepción de Productos</h2>
+                    <p class="text-gray-600 mb-6">Completa los detalles del producto recibido.</p>
+                    <form id="receptionForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="provider" class="block text-gray-700 text-sm font-semibold mb-2">Proveedor:</label>
+                            <select id="provider" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                <option value="">Selecciona un proveedor</option>
+                                ${providersOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="product" class="block text-gray-700 text-sm font-semibold mb-2">Producto:</label>
+                            <select id="product" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                <option value="">Selecciona un producto</option>
+                                ${productsOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="lotNumber" class="block text-gray-700 text-sm font-semibold mb-2">Número de Lote:</label>
+                            <input type="text" id="lotNumber" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: LOTE-XYZ-123" required>
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-gray-700 text-sm font-semibold mb-2">Cantidad:</label>
+                            <input type="number" id="quantity" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 100" required min="1">
+                        </div>
+                        <div>
+                            <label for="expirationDate" class="block text-gray-700 text-sm font-semibold mb-2">Fecha de Caducidad:</label>
+                            <input type="date" id="expirationDate" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="receptionDate" class="block text-gray-700 text-sm font-semibold mb-2">Fecha de Ingreso:</label>
+                            <input type="date" id="receptionDate" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 bg-gray-50 cursor-not-allowed" disabled>
+                        </div>
+                        <div>
+                            <label for="status" class="block text-gray-700 text-sm font-semibold mb-2">Estado:</label>
+                            <select id="status" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                <option value="conforme">Conforme</option>
+                                <option value="no-conforme">No Conforme</option>
+                            </select>
+                        </div>
+                        <div id="rejectionReasonDiv" style="display: none;">
+                            <label for="rejectionReason" class="block text-gray-700 text-sm font-semibold mb-2">Causa de Rechazo:</label>
+                            <select id="rejectionReason" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Selecciona una causa</option>
+                                ${rejectionReasonsOptions}
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="observations" class="block text-gray-700 text-sm font-semibold mb-2">Observaciones:</label>
+                            <textarea id="observations" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" placeholder="Comentarios adicionales"></textarea>
+                        </div>
+                        <div class="md:col-span-2 flex justify-end mt-4">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                                Registrar Recepción
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            // Set current date for receptionDate
+            document.getElementById('receptionDate').valueAsDate = new Date();
+
+            // Logic to show/hide rejection reason based on status
+            const statusSelect = document.getElementById('status');
+            const rejectionReasonDiv = document.getElementById('rejectionReasonDiv');
+            statusSelect.addEventListener('change', (event) => {
+                if (event.target.value === 'no-conforme') {
+                    rejectionReasonDiv.style.display = 'block';
+                    document.getElementById('rejectionReason').setAttribute('required', 'true');
+                } else {
+                    rejectionReasonDiv.style.display = 'none';
+                    document.getElementById('rejectionReason').removeAttribute('required');
+                }
+            });
+
+            // Handle form submission (dummy)
+            document.getElementById('receptionForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                showCustomModal('Recepción registrada con éxito (funcionalidad de guardado no implementada).');
+                // Here you would typically send data to a backend API
+            });
+        }
+
+        /**
+         * Renderiza el listado de recepciones pendientes para el supervisor.
+         */
+        function renderPendingReceptionsList() {
+            const mainContent = document.getElementById('main-content');
+            let rowsHtml = '';
+            if (dummyData.pendingReceptions.length > 0) {
+                rowsHtml = dummyData.pendingReceptions.map(reception => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${reception.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${reception.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${reception.provider}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${reception.product}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${reception.status}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="showCustomModal('Ver detalles de la recepción ${reception.id}')">Ver</button>
+                            <button class="text-green-600 hover:text-green-900 mr-4" onclick="showCustomModal('Aprobar recepción ${reception.id}')">Aprobar</button>
+                            <button class="text-red-600 hover:text-red-900" onclick="showCustomModal('Rechazar recepción ${reception.id}')">Rechazar</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                rowsHtml = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay recepciones pendientes.</td>
+                    </tr>
+                `;
+            }
+
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Recepciones Pendientes de Revisión</h2>
+                    <p class="text-gray-600 mb-6">Aquí puedes revisar y gestionar las recepciones realizadas por los operarios.</p>
+                    
+                    <div class="mb-4 flex flex-wrap gap-4">
+                        <input type="text" placeholder="Filtrar por ID o Lote" class="flex-1 min-w-[200px] shadow-sm border rounded-lg py-2 px-3 text-gray-700">
+                        <input type="date" placeholder="Fecha desde" class="flex-1 min-w-[150px] shadow-sm border rounded-lg py-2 px-3 text-gray-700">
+                        <input type="date" placeholder="Fecha hasta" class="flex-1 min-w-[150px] shadow-sm border rounded-lg py-2 px-3 text-gray-700">
+                        <select class="flex-1 min-w-[150px] shadow-sm border rounded-lg py-2 px-3 text-gray-700">
+                            <option value="">Filtrar por Proveedor</option>
+                            ${dummyData.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                        </select>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Aplicar Filtros</button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renderiza el panel de administración.
+         */
+        function renderAdminPanel() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Panel de Administración</h2>
+                    <p class="text-gray-600 mb-6">Gestiona los catálogos del sistema, usuarios y roles.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-purple-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-purple-800 mb-2">Gestión de Proveedores</h3>
+                            <p class="text-gray-700">Crear, editar o desactivar proveedores.</p>
+                            <button class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg" onclick="renderProvidersManagement();">Ir a Proveedores</button>
+                        </div>
+                        <div class="bg-orange-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-orange-800 mb-2">Catálogo de Productos</h3>
+                            <p class="text-gray-700">Administrar el listado de productos disponibles.</p>
+                            <button class="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg" onclick="renderProductsManagement();">Ir a Productos</button>
+                        </div>
+                        <div class="bg-red-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-red-800 mb-2">Causas de Rechazo</h3>
+                            <p class="text-gray-700">Definir y modificar las causas de rechazo para recepciones.</p>
+                            <button class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg" onclick="renderRejectionReasonsManagement();">Ir a Causas</button>
+                        </div>
+                        <div class="bg-teal-100 p-4 rounded-lg shadow-md">
+                            <h3 class="font-semibold text-lg text-teal-800 mb-2">Gestión de Usuarios y Roles</h3>
+                            <p class="text-gray-700">Crear nuevos usuarios y asignarles roles (operario, supervisor, admin).</p>
+                            <button class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg" onclick="renderUsersManagement();">Ir a Usuarios</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renderiza la gestión de proveedores (ejemplo de CRUD).
+         */
+        function renderProvidersManagement() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Gestión de Proveedores</h2>
+                    <p class="text-gray-600 mb-6">Administra la lista de proveedores del sistema.</p>
+
+                    <!-- Formulario para agregar/editar proveedor -->
+                    <div class="mb-8 p-6 bg-gray-50 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Agregar/Editar Proveedor</h3>
+                        <form id="providerForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="hidden" id="providerId">
+                            <div>
+                                <label for="providerName" class="block text-gray-700 text-sm font-semibold mb-2">Nombre del Proveedor:</label>
+                                <input type="text" id="providerName" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: Farmaceutica ABC" required>
+                            </div>
+                            <div>
+                                <label for="providerRuc" class="block text-gray-700 text-sm font-semibold mb-2">RUC:</label>
+                                <input type="text" id="providerRuc" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 20123456789" required maxlength="11" minlength="11">
+                            </div>
+                            <div>
+                                <label for="providerPhone" class="block text-gray-700 text-sm font-semibold mb-2">Teléfono:</label>
+                                <input type="tel" id="providerPhone" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 987654321">
+                            </div>
+                            <div>
+                                <label for="providerEmail" class="block text-gray-700 text-sm font-semibold mb-2">Email:</label>
+                                <input type="email" id="providerEmail" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: info@proveedor.com">
+                            </div>
+                            <div class="md:col-span-2 flex justify-end gap-4 mt-2">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                                    Guardar Proveedor
+                                </button>
+                                <button type="button" id="cancelEditProvider" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition duration-300 transform hover:scale-105 hidden">
+                                    Cancelar Edición
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de proveedores -->
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Listado de Proveedores</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RUC</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="providersTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de proveedores se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const providerForm = document.getElementById('providerForm');
+            const providerIdInput = document.getElementById('providerId');
+            const providerNameInput = document.getElementById('providerName');
+            const providerRucInput = document.getElementById('providerRuc');
+            const providerPhoneInput = document.getElementById('providerPhone');
+            const providerEmailInput = document.getElementById('providerEmail');
+            const providersTableBody = document.getElementById('providersTableBody');
+            const cancelEditButton = document.getElementById('cancelEditProvider');
+
+            // Function to render providers table
+            function loadProvidersTable() {
+                let rowsHtml = '';
+                if (dummyData.providers.length > 0) {
+                    rowsHtml = dummyData.providers.map(p => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.ruc}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.phone || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.email || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="editProvider('${p.id}')">Editar</button>
+                                <button class="text-red-600 hover:text-red-900" onclick="deleteProvider('${p.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    rowsHtml = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">No hay proveedores registrados.</td>
+                        </tr>
+                    `;
+                }
+                providersTableBody.innerHTML = rowsHtml;
+            }
+
+            // Function to edit a provider (loads data into form)
+            window.editProvider = (id) => {
+                const provider = dummyData.providers.find(p => p.id === id);
+                if (provider) {
+                    providerIdInput.value = provider.id;
+                    providerNameInput.value = provider.name;
+                    providerRucInput.value = provider.ruc;
+                    providerPhoneInput.value = provider.phone;
+                    providerEmailInput.value = provider.email;
+                    cancelEditButton.classList.remove('hidden'); // Show cancel button
+                }
+            };
+
+            // Function to delete a provider (dummy)
+            window.deleteProvider = (id) => {
+                showCustomModal(`Proveedor ${id} eliminado (simulado).`);
+                dummyData.providers = dummyData.providers.filter(p => p.id !== id); // Remove from dummy data
+                loadProvidersTable(); // Re-render table
+            };
+
+            // Handle provider form submission
+            providerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = providerIdInput.value;
+                const name = providerNameInput.value;
+                const ruc = providerRucInput.value;
+                const phone = providerPhoneInput.value;
+                const email = providerEmailInput.value;
+
+                if (id) {
+                    // Edit existing provider
+                    const index = dummyData.providers.findIndex(p => p.id === id);
+                    if (index !== -1) {
+                        dummyData.providers[index] = { ...dummyData.providers[index], name, ruc, phone, email };
+                        showCustomModal('Proveedor actualizado con éxito (simulado).');
+                    }
+                } else {
+                    // Add new provider
+                    const newId = (dummyData.providers.length + 1).toString(); // Simple ID generation
+                    dummyData.providers.push({ id: newId, name, ruc, phone, email });
+                    showCustomModal('Proveedor agregado con éxito (simulado).');
+                }
+
+                // Clear form and hide cancel button
+                providerForm.reset();
+                providerIdInput.value = '';
+                cancelEditButton.classList.add('hidden');
+                loadProvidersTable(); // Re-render table
+            });
+
+            // Handle cancel edit
+            cancelEditButton.addEventListener('click', () => {
+                providerForm.reset();
+                providerIdInput.value = '';
+                cancelEditButton.classList.add('hidden');
+            });
+
+            loadProvidersTable(); // Initial load of the table
+        }
+
+        /**
+         * Renderiza la gestión de productos (ejemplo de CRUD).
+         */
+        function renderProductsManagement() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Catálogo de Productos</h2>
+                    <p class="text-gray-600 mb-6">Administra el listado de productos disponibles en el sistema.</p>
+
+                    <!-- Formulario para agregar/editar producto -->
+                    <div class="mb-8 p-6 bg-gray-50 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Agregar/Editar Producto</h3>
+                        <form id="productForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="hidden" id="productId">
+                            <div>
+                                <label for="productName" class="block text-gray-700 text-sm font-semibold mb-2">Nombre del Producto:</label>
+                                <input type="text" id="productName" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: Paracetamol 500mg" required>
+                            </div>
+                            <div>
+                                <label for="productCode" class="block text-gray-700 text-sm font-semibold mb-2">Código:</label>
+                                <input type="text" id="productCode" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: P001" required>
+                            </div>
+                            <div>
+                                <label for="productUnit" class="block text-gray-700 text-sm font-semibold mb-2">Unidad de Medida:</label>
+                                <input type="text" id="productUnit" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: Blister, Caja, Kg, Lt">
+                            </div>
+                            <div class="md:col-span-2 flex justify-end gap-4 mt-2">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                                    Guardar Producto
+                                </button>
+                                <button type="button" id="cancelEditProduct" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition duration-300 transform hover:scale-105 hidden">
+                                    Cancelar Edición
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de productos -->
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Listado de Productos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de productos se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const productForm = document.getElementById('productForm');
+            const productIdInput = document.getElementById('productId');
+            const productNameInput = document.getElementById('productName');
+            const productCodeInput = document.getElementById('productCode');
+            const productUnitInput = document.getElementById('productUnit');
+            const productsTableBody = document.getElementById('productsTableBody');
+            const cancelEditProductButton = document.getElementById('cancelEditProduct');
+
+            // Function to render products table
+            function loadProductsTable() {
+                let rowsHtml = '';
+                if (dummyData.products.length > 0) {
+                    rowsHtml = dummyData.products.map(p => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.code}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.unit || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="editProduct('${p.id}')">Editar</button>
+                                <button class="text-red-600 hover:text-red-900" onclick="deleteProduct('${p.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    rowsHtml = `
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay productos registrados.</td>
+                        </tr>
+                    `;
+                }
+                productsTableBody.innerHTML = rowsHtml;
+            }
+
+            // Function to edit a product (loads data into form)
+            window.editProduct = (id) => {
+                const product = dummyData.products.find(p => p.id === id);
+                if (product) {
+                    productIdInput.value = product.id;
+                    productNameInput.value = product.name;
+                    productCodeInput.value = product.code;
+                    productUnitInput.value = product.unit;
+                    cancelEditProductButton.classList.remove('hidden');
+                }
+            };
+
+            // Function to delete a product (dummy)
+            window.deleteProduct = (id) => {
+                showCustomModal(`Producto ${id} eliminado (simulado).`);
+                dummyData.products = dummyData.products.filter(p => p.id !== id);
+                loadProductsTable();
+            };
+
+            // Handle product form submission
+            productForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = productIdInput.value;
+                const name = productNameInput.value;
+                const code = productCodeInput.value;
+                const unit = productUnitInput.value;
+
+                if (id) {
+                    const index = dummyData.products.findIndex(p => p.id === id);
+                    if (index !== -1) {
+                        dummyData.products[index] = { ...dummyData.products[index], name, code, unit };
+                        showCustomModal('Producto actualizado con éxito (simulado).');
+                    }
+                } else {
+                    const newId = (dummyData.products.length + 1000).toString(); // Simple ID generation
+                    dummyData.products.push({ id: newId, name, code, unit });
+                    showCustomModal('Producto agregado con éxito (simulado).');
+                }
+
+                productForm.reset();
+                productIdInput.value = '';
+                cancelEditProductButton.classList.add('hidden');
+                loadProductsTable();
+            });
+
+            // Handle cancel edit
+            cancelEditProductButton.addEventListener('click', () => {
+                productForm.reset();
+                productIdInput.value = '';
+                cancelEditProductButton.classList.add('hidden');
+            });
+
+            loadProductsTable(); // Initial load of the table
+        }
+
+        /**
+         * Renderiza la gestión de causas de rechazo (ejemplo de CRUD).
+         */
+        function renderRejectionReasonsManagement() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Gestión de Causas de Rechazo</h2>
+                    <p class="text-gray-600 mb-6">Administra las razones estándar para el rechazo de recepciones.</p>
+
+                    <!-- Formulario para agregar/editar causa de rechazo -->
+                    <div class="mb-8 p-6 bg-gray-50 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Agregar/Editar Causa de Rechazo</h3>
+                        <form id="rejectionReasonForm" class="grid grid-cols-1 gap-4">
+                            <input type="hidden" id="rejectionReasonId">
+                            <div>
+                                <label for="rejectionReasonDescription" class="block text-gray-700 text-sm font-semibold mb-2">Descripción:</label>
+                                <input type="text" id="rejectionReasonDescription" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: Empaque dañado" required>
+                            </div>
+                            <div class="flex justify-end gap-4 mt-2">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                                    Guardar Causa
+                                </button>
+                                <button type="button" id="cancelEditReason" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition duration-300 transform hover:scale-105 hidden">
+                                    Cancelar Edición
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de causas de rechazo -->
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Listado de Causas de Rechazo</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rejectionReasonsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de causas se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const rejectionReasonForm = document.getElementById('rejectionReasonForm');
+            const rejectionReasonIdInput = document.getElementById('rejectionReasonId');
+            const rejectionReasonDescriptionInput = document.getElementById('rejectionReasonDescription');
+            const rejectionReasonsTableBody = document.getElementById('rejectionReasonsTableBody');
+            const cancelEditReasonButton = document.getElementById('cancelEditReason');
+
+            // Function to render reasons table
+            function loadRejectionReasonsTable() {
+                let rowsHtml = '';
+                if (dummyData.rejectionReasons.length > 0) {
+                    rowsHtml = dummyData.rejectionReasons.map(r => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.description}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="editRejectionReason('${r.id}')">Editar</button>
+                                <button class="text-red-600 hover:text-red-900" onclick="deleteRejectionReason('${r.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    rowsHtml = `
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-center text-gray-500">No hay causas de rechazo registradas.</td>
+                        </tr>
+                    `;
+                }
+                rejectionReasonsTableBody.innerHTML = rowsHtml;
+            }
+
+            // Function to edit a reason (loads data into form)
+            window.editRejectionReason = (id) => {
+                const reason = dummyData.rejectionReasons.find(r => r.id === id);
+                if (reason) {
+                    rejectionReasonIdInput.value = reason.id;
+                    rejectionReasonDescriptionInput.value = reason.description;
+                    cancelEditReasonButton.classList.remove('hidden');
+                }
+            };
+
+            // Function to delete a reason (dummy)
+            window.deleteRejectionReason = (id) => {
+                showCustomModal(`Causa de rechazo ${id} eliminada (simulado).`);
+                dummyData.rejectionReasons = dummyData.rejectionReasons.filter(r => r.id !== id);
+                loadRejectionReasonsTable();
+            };
+
+            // Handle reason form submission
+            rejectionReasonForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = rejectionReasonIdInput.value;
+                const description = rejectionReasonDescriptionInput.value;
+
+                if (id) {
+                    const index = dummyData.rejectionReasons.findIndex(r => r.id === id);
+                    if (index !== -1) {
+                        dummyData.rejectionReasons[index] = { ...dummyData.rejectionReasons[index], description };
+                        showCustomModal('Causa de rechazo actualizada con éxito (simulado).');
+                    }
+                } else {
+                    const newId = 'r' + (dummyData.rejectionReasons.length + 10).toString(); // Simple ID generation
+                    dummyData.rejectionReasons.push({ id: newId, description });
+                    showCustomModal('Causa de rechazo agregada con éxito (simulado).');
+                }
+
+                rejectionReasonForm.reset();
+                rejectionReasonIdInput.value = '';
+                cancelEditReasonButton.classList.add('hidden');
+                loadRejectionReasonsTable();
+            });
+
+            // Handle cancel edit
+            cancelEditReasonButton.addEventListener('click', () => {
+                rejectionReasonForm.reset();
+                rejectionReasonIdInput.value = '';
+                cancelEditReasonButton.classList.add('hidden');
+            });
+
+            loadRejectionReasonsTable(); // Initial load of the table
+        }
+
+        /**
+         * Renderiza la gestión de usuarios y roles (ejemplo de CRUD).
+         */
+        function renderUsersManagement() {
+            const mainContent = document.getElementById('main-content');
+            const rolesOptions = ['operario', 'supervisor', 'administrador'].map(role => `<option value="${role}">${role.charAt(0).toUpperCase() + role.slice(1)}</option>`).join('');
+
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 animate-fade-in-down">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Gestión de Usuarios y Roles</h2>
+                    <p class="text-gray-600 mb-6">Crea nuevos usuarios, edita sus datos y asigna roles.</p>
+
+                    <!-- Formulario para agregar/editar usuario -->
+                    <div class="mb-8 p-6 bg-gray-50 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Agregar/Editar Usuario</h3>
+                        <form id="userForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="hidden" id="userId">
+                            <div>
+                                <label for="userName" class="block text-gray-700 text-sm font-semibold mb-2">Nombre Completo:</label>
+                                <input type="text" id="userName" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: Juan Pérez" required>
+                            </div>
+                            <div>
+                                <label for="userEmail" class="block text-gray-700 text-sm font-semibold mb-2">Correo Electrónico:</label>
+                                <input type="email" id="userEmail" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: juan.perez@logisticentro.com" required>
+                            </div>
+                            <div>
+                                <label for="userRole" class="block text-gray-700 text-sm font-semibold mb-2">Rol:</label>
+                                <select id="userRole" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                    ${rolesOptions}
+                                </select>
+                            </div>
+                            <div id="passwordField">
+                                <label for="userPassword" class="block text-gray-700 text-sm font-semibold mb-2">Contraseña (solo para nuevo usuario o restablecer):</label>
+                                <input type="password" id="userPassword" class="shadow-sm border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="************">
+                            </div>
+                            <div class="md:col-span-2 flex justify-end gap-4 mt-2">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                                    Guardar Usuario
+                                </button>
+                                <button type="button" id="cancelEditUser" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition duration-300 transform hover:scale-105 hidden">
+                                    Cancelar Edición
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de usuarios -->
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Listado de Usuarios</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de usuarios se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const userForm = document.getElementById('userForm');
+            const userIdInput = document.getElementById('userId');
+            const userNameInput = document.getElementById('userName');
+            const userEmailInput = document.getElementById('userEmail');
+            const userRoleSelect = document.getElementById('userRole');
+            const userPasswordInput = document.getElementById('userPassword');
+            const passwordField = document.getElementById('passwordField'); // To hide/show password field
+            const usersTableBody = document.getElementById('usersTableBody');
+            const cancelEditUserButton = document.getElementById('cancelEditUser');
+
+            // Function to render users table
+            function loadUsersTable() {
+                let rowsHtml = '';
+                if (dummyData.users.length > 0) {
+                    rowsHtml = dummyData.users.map(u => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${u.name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${u.email}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${u.role.charAt(0).toUpperCase() + u.role.slice(1)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-indigo-600 hover:text-indigo-900 mr-4" onclick="editUser('${u.id}')">Editar</button>
+                                <button class="text-red-600 hover:text-red-900" onclick="deleteUser('${u.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    rowsHtml = `
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay usuarios registrados.</td>
+                        </tr>
+                    `;
+                }
+                usersTableBody.innerHTML = rowsHtml;
+            }
+
+            // Function to edit a user (loads data into form)
+            window.editUser = (id) => {
+                const user = dummyData.users.find(u => u.id === id);
+                if (user) {
+                    userIdInput.value = user.id;
+                    userNameInput.value = user.name;
+                    userEmailInput.value = user.email;
+                    userRoleSelect.value = user.role;
+                    userPasswordInput.value = ''; // Clear password field for security
+                    passwordField.classList.remove('hidden'); // Show password field for reset
+                    cancelEditUserButton.classList.remove('hidden');
+                }
+            };
+
+            // Function to delete a user (dummy)
+            window.deleteUser = (id) => {
+                showCustomModal(`Usuario ${id} eliminado (simulado).`);
+                dummyData.users = dummyData.users.filter(u => u.id !== id);
+                loadUsersTable();
+            };
+
+            // Handle user form submission
+            userForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = userIdInput.value;
+                const name = userNameInput.value;
+                const email = userEmailInput.value;
+                const role = userRoleSelect.value;
+                const password = userPasswordInput.value; // In a real app, this would be hashed
+
+                if (id) {
+                    const index = dummyData.users.findIndex(u => u.id === id);
+                    if (index !== -1) {
+                        dummyData.users[index] = { ...dummyData.users[index], name, email, role };
+                        showCustomModal('Usuario actualizado con éxito (simulado).');
+                    }
+                } else {
+                    const newId = 'u' + (dummyData.users.length + 10).toString(); // Simple ID generation
+                    dummyData.users.push({ id: newId, name, email, role, password: password || 'default_password' }); // Store dummy password
+                    showCustomModal('Usuario agregado con éxito (simulado).');
+                }
+
+                userForm.reset();
+                userIdInput.value = '';
+                cancelEditUserButton.classList.add('hidden');
+                loadUsersTable();
+            });
+
+            // Handle cancel edit
+            cancelEditUserButton.addEventListener('click', () => {
+                userForm.reset();
+                userIdInput.value = '';
+                cancelEditUserButton.classList.add('hidden');
+            });
+
+            loadUsersTable(); // Initial load of the table
+        }
+
+
+        /**
          * Función principal para renderizar la aplicación basada en el estado de autenticación.
          */
         function renderApp() {
             if (!isAuthenticated) {
                 renderLoginForm();
             } else {
-                renderDashboard(userRole);
+                renderAppContent();
             }
         }
 
